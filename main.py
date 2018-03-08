@@ -25,11 +25,12 @@ net.summary()
 for _ in range(1):
     for i in range(len(I.train)):
         if (i+1) % 1000 == 0:
+            net.update_weights()
+
             net.test_representations(I.test,I.test_label,10)
             net.representations = {}
 
-            net.update_weights()
-            net.forward(I.train[i],visualize=VISUALIZE)            
+            net.forward(I.train[np.random.randint(0,len(I.train))],visualize=VISUALIZE)            
         net.forward(I.train[i],visualize=False)
 
 print 'Training finished'

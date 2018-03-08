@@ -17,7 +17,7 @@ class Data:
             x_test[x_test <= 120] = 0
             x_test[x_test > 120] = 1
             
-            self.train,self.test,self.test_label = x_train[:3003],x_test[:100],y_test[:100]
+            self.train,self.test,self.test_label = x_train[:2003],x_test[:200],y_test[:200]
         else:
             self.train,self.test,self.test_label = self.generate_1d()
 

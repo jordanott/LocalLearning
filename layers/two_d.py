@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class two_d:
-    def __init__(self,receptive_field=10,activity_rate=.2,locally_connected=True,drop_prob=.1):
+    def __init__(self,receptive_field=10,activity_rate=.2,locally_connected=True,drop_prob=.05):
         self.activity_rate = activity_rate
         self.receptive_field = receptive_field
         self.locally_connected = locally_connected
         self.lr = 1e-2
         self.W_history = []
         self.drop_prob = drop_prob
+        self.weight_threshold = 2
 
     def _get_layer_shape(self):
         # default stride one
@@ -27,7 +28,7 @@ class two_d:
         # layer number
         self.layer_num = layer_num
         # initialize weights
-        self.W = np.random.uniform(-1,1,size=(self.layer_shape + self.input_shape))
+        self.W = np.random.uniform(-.5,.5,size=(self.layer_shape + self.input_shape))
 
         if self.locally_connected:
             m = np.zeros((self.layer_shape + self.input_shape))
@@ -78,7 +79,9 @@ class two_d:
         self._W[w_zero] = 0
         # reset randomly dropped weights to cancle learning
         self._W[np.where(drop == 0)] = prior_W[np.where(drop == 0)]
-
+        # clip weights
+        # self._W = np.clip(self._W,-self.weight_threshold,self.weight_threshold)
+        # store weights 
         self.W_history.append(np.copy(self._W))
         return VP
 

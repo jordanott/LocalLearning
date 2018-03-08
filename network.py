@@ -62,8 +62,11 @@ class Network:
             else:
                 O = l.forward(O,visualize)
         if visualize == 'last':
+                plt.subplot(121)
+                plt.imshow(I)
+                plt.subplot(122)
                 plt.imshow(O)
-                plt.title('Layer: '+str(l.layer_num))
+                plt.suptitle('Layer: '+str(l.layer_num))
                 plt.show()
         return O
 
