@@ -9,7 +9,7 @@ class Network(object):
         self.monitor = m = Monitor(num_classes, layer_info)
 
         self.num_layers = len(layer_info)
-        self.W = []
+        self.W = {}
         for i in range(self.num_layers):
             # number of neurons per layer
             N = layer_info[i]
@@ -17,11 +17,32 @@ class Network(object):
             # input shape for layer
             if i != 0: input_shape = layer_info[i-1]*columns
 
+            self.layers[i] = {
+                'weights':{
+                    'proximal':None, 'distal':None, 'apical':None
+                }
+                'connections':{
+                    'proximal':None, 'distal':None, 'apical':None
+                }
+            }
+
+            # bottom up weights
+            self.layers['proximal'] =
+
+            # top down weights
+            self.layers['apical'] =
+
+            # intra layer weights
+            self.layers['distal'] =
+
             self.W.append([torch.randn((input_shape, N)) for _ in range(columns)])
 
         self.softmax = nn.Softmax()
+    def generate(self, in_shape, out_shape, sparsity=0.8):
+        return torch.randn(in_shape+out_shape), torch.FloatTensor(in_shape+out_shape).uniform_() > sparsity
 
-    def forward(self, x, class=None):
+
+    def forward(self, x):
         # record active_neurons per column per layer
         self.active_neurons = [[] for _ in range(self.num_layers)]
 
@@ -60,3 +81,4 @@ class Network(object):
             active_neurons = self.active_neurons[l_idx]
 
             for col,act_neuron in zip(layer,active_neurons):
+                pass
