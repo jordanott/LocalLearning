@@ -52,8 +52,11 @@ class Network(object):
         array[mask] = 1
         return array
 
-    def forward(self, x):
+    def _layer_compute(self, x, layer):
 
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x =
 
 
     def learn(self):
