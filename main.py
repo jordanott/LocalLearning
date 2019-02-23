@@ -1,41 +1,38 @@
-from network import Network
-from layers.one_d import one_d
-from layers.two_d import two_d
-from data import Data
-import matplotlib.pyplot as plt
+import torch
+import argparse
 import numpy as np
+import torch.nn as nn
 
-VISUALIZE = 'last'
-INPUT_SHAPE = (28,28)
-I = Data(INPUT_SHAPE,mnist=True)
+from Agent.model import Network
+from Monitor.monitor import AgentMonitor
+from torchvision import datasets, transforms
+from Env.environment_manager import EnvManager
+# set random seeds
+np.random.seed(0); torch.manual_seed(0)
 
-net = Network()
-'''
-net.add(one_d(), input_shape=INPUT_SHAPE)
-net.add(one_d())
-net.add(one_d())
-net.add(one_d(receptive_field=100))
-'''
-net.add(two_d(receptive_field=5), input_shape=INPUT_SHAPE)
-net.add(two_d(receptive_field=7))
-#net.add(two_d(receptive_field=10))
-net.summary()
+parser = argparse.ArgumentParser()
 
-# train
-for _ in range(1):
-    for i in range(len(I.train)):
-        if (i+1) % 1000 == 0:
-            net.update_weights()
+parser.add_argument('--num_layers', type=int, default=5, help='Number of layers')
+parser.add_argument('--epochs', type=int, default=200, help='Number of epochs used for training')
+parser.add_argument('--env', type=str, default='MNIST', choices=['MNIST', 'LMNIST', 'GYM'], help='Type of task')
 
-            net.test_representations(I.test,I.test_label,10)
-            net.representations = {}
+args = vars(parser.parse_args())
 
-            net.forward(I.train[np.random.randint(0,len(I.train))],visualize=VISUALIZE)            
-        net.forward(I.train[i],visualize=False)
+env = EnvManager(args)
+monitor = AgentMonitor(args)
+net = Network(args)
 
-print 'Training finished'
+train_loader = torch.utils.data.DataLoader(
+        datasets.MNIST("../data", train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           #transforms.Normalize((0.1307,), (0.3081,))
+                       ])),
+        batch_size=1, shuffle=True)
 
-#net.hash_representations(I.train)
+for batch_idx, (data, target) in enumerate(train_loader):
+    x = data.view(-1, 784)
 
-net.test_representations(I.test,I.test_label,10,plot=True)
-net.plot_weight_history()
+    print net.forward(x)
+
+    break
