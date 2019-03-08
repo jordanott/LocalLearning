@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 
+from layer import Layer
+
 class Network(object):
     def __init__(self, args):
         self.args = args
@@ -12,52 +14,33 @@ class Network(object):
     def _build_network(self):
         self.layers = []
         input_shape = self.args['input_shape']
-        for N in self.args['layers']:
-            self.layers.append(
-                self._init_layer(input_shape, (N, N))
-            )
+        # first to penultimate layer
+        for i in range(len(self.args['layers'])-1):
+            # dimensions of current layer
+            N = self.args['layers'][i]
+            # dimensions of next layer
+            N_1 = self.args['layers'][i+1]
 
+            # build layer
+            self.layers.append(
+                Layer(input_shape, (N, N), (N_1, N_1))
+            )
+            # output shape of current layer; serves as input to layer above
             input_shape = (N, N)
 
-    def _init_layer(self, input_shape, layer_shape):
-        layer = {
-            'weights':{
-                'proximal':self._build_weights(layer_shape, input_shape),            # bottom up
-                'distal':self._build_weights(layer_shape, layer_shape),              # intra layer
-                'apical':self._build_weights(input_shape, layer_shape)               # top down
-            },
-            'connections':{
-                'proximal':self._build_layer_connections(layer_shape, input_shape),
-                'distal':self._build_layer_connections(layer_shape, layer_shape),
-                'apical':self._build_layer_connections(input_shape, layer_shape)
-            }
-        }
-        return layer
+        N = self.args['layers'][-1]
+        # build top layer
+        self.layers.append(
+            Layer(input_shape, (N, N), None) # last layer doesn't get top down input
+        )
 
-    def _build_weights(self, output_shape, input_shape):
-        return torch.randn(output_shape+input_shape)
+    def act(self, x):
+        x = torch.from_numpy(x).type(torch.float64)
+        for i in range(len(self.layers)-1):
+            layer = self.layers[i]
+            top_down = self.layers[i+1].state
 
-    def _build_layer_connections(self, output_shape, input_shape):
-        connections = np.zeros(output_shape + input_shape)
-        for row in range(output_shape[0]):
-            for col in range(output_shape[1]):
-                connections[row][col] = self._generate_mask(row, col, input_shape[0])
-        return connections
-
-    def _generate_mask(self, row, col, n, r=3):
-        y,x = np.ogrid[-row:n-row, -col:n-col]
-        mask = x*x + y*y <= r*r
-
-        array = np.zeros((n, n))
-        array[mask] = 1
-        return array
-
-    def _layer_compute(self, x, layer):
-
-    def forward(self, x):
-        for i, layer in enumerate(self.layers):
-            x =
-
+            x = layer.layer_compute(x, top_down)
 
     def learn(self):
         for l_idx in range(self.num_layers):
