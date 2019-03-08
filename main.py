@@ -22,17 +22,11 @@ env = EnvManager(args)
 monitor = AgentMonitor(args)
 net = Network(args)
 
-train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST("../data", train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           #transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=1, shuffle=True)
 
-for batch_idx, (data, target) in enumerate(train_loader):
-    x = data.view(-1, 784)
+if __name__ == '__main__':
+    state = env.reset()
 
-    print net.forward(x)
+    for i in range(10):
+        action = net.act(state)
 
-    break
+        state = env.step(action)
