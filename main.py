@@ -26,7 +26,9 @@ net = Network(args)
 if __name__ == '__main__':
     state = env.reset()
 
-    for i in range(10):
+    for i in range(100):
         action = net.act(state)
 
         state = env.step(action)
+
+    monitor.update(net)

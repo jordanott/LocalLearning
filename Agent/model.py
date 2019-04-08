@@ -41,11 +41,4 @@ class Network(object):
             top_down = self.layers[i+1].state
 
             x = layer.layer_compute(x, top_down)
-
-    def learn(self):
-        for l_idx in range(self.num_layers):
-            layer = self.W[l_idx]
-            active_neurons = self.active_neurons[l_idx]
-
-            for col,act_neuron in zip(layer,active_neurons):
-                pass
+        return x

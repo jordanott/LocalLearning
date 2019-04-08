@@ -19,14 +19,14 @@ class MNIST(Environment):
     def step(self, action):
         # yield next image; not interactible
         self.data_index += 1
-        self._get_state()
+        return self._get_state()
 
     def reset(self):
         self.data_index = 0
         return self._get_state()
 
     def _get_state(self):
-        return self.data[self.data_index % self.num_samples]
+        return (self.data[self.data_index % self.num_samples] > 1).astype(np.float16)
 
 class LMNIST(Environment):
     def __init__(self, args):
