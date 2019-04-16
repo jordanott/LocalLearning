@@ -5,7 +5,7 @@ class AgentMonitor(object):
         # self.layers = {l:{c:[0]*layer_info[l] for c in range(num_classes)} for l in range(len(layer_info))}
         self.args = args
     def update(self, net):
-        for i in range(len(net.layers)-1):
+        for i in range(len(net.layers)):
             layer = net.layers[i]
 
             fig = plt.figure(figsize=(20,10))

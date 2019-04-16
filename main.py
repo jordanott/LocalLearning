@@ -12,7 +12,7 @@ np.random.seed(0); torch.manual_seed(0)
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--num_layers', type=int, default=5, help='Number of layers')
+parser.add_argument('--num_layers', type=int, default=2, help='Number of layers')
 parser.add_argument('--epochs', type=int, default=200, help='Number of epochs used for training')
 parser.add_argument('--env', type=str, default='MNIST', choices=['MNIST', 'LMNIST', 'GYM'], help='Type of task')
 
@@ -26,9 +26,18 @@ net = Network(args)
 if __name__ == '__main__':
     state = env.reset()
 
-    for i in range(100):
+    for i in range(1000):
         action = net.act(state)
 
         state = env.step(action)
+
+    for i in range(10):
+        action = net.act(state)
+
+        state = env.step(action)
+
+        net.vis_layers()
+
+    net.layers[0].vis_weights(train='post')
 
     monitor.update(net)

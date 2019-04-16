@@ -23,7 +23,7 @@ class Network(object):
 
             # build layer
             self.layers.append(
-                Layer(input_shape, (N, N), (N_1, N_1))
+                Layer(i+1, input_shape, (N, N), (N_1, N_1))
             )
             # output shape of current layer; serves as input to layer above
             input_shape = (N, N)
@@ -31,14 +31,18 @@ class Network(object):
         N = self.args['layers'][-1]
         # build top layer
         self.layers.append(
-            Layer(input_shape, (N, N), None) # last layer doesn't get top down input
+            Layer(i+2, input_shape, (N, N), None) # last layer doesn't get top down input
         )
 
     def act(self, x):
         x = torch.from_numpy(x).type(torch.float64)
-        for i in range(len(self.layers)-1):
+        for i in range(len(self.layers)):
             layer = self.layers[i]
-            top_down = self.layers[i+1].state
+            top_down = self.layers[i+1].active_neurons if i+1 != len(self.layers) else None
 
             x = layer.layer_compute(x, top_down)
         return x
+
+    def vis_layers(self):
+        for layer in self.layers:
+            layer.vis_activity()
