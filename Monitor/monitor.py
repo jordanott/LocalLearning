@@ -4,6 +4,7 @@ class AgentMonitor(object):
     def __init__(self, args):
         # self.layers = {l:{c:[0]*layer_info[l] for c in range(num_classes)} for l in range(len(layer_info))}
         self.args = args
+        
     def update(self, net):
         for i in range(len(net.layers)):
             layer = net.layers[i]

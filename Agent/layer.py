@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from torch import nn
 
 class Layer:
-    def __init__(self, ID, input_shape, layer_shape, top_down_shape,
+    def __init__(self, args, ID, input_shape, layer_shape, top_down_shape,
         activity_decay=0.9, threshold=1., learning_rate=1e-3, reset_potential=0):
         self.weights = {
             'basal':self._build_weights(layer_shape, input_shape),            # bottom up
@@ -42,6 +42,7 @@ class Layer:
                 'apical': []
             }
         }
+        if args['vis_weights']:  self.vis_weights()
 
     def build_directory(self, path, current_path=''):
         print path
@@ -54,7 +55,7 @@ class Layer:
 
     def vis_weights(self, train='pretrain'):
         def vis(dendrite_type):
-            path = 'Results/Weights/{}/{}/'.format(train, dendrite_type)
+            path = 'Results/Weights/{}/{}/{}/'.format(train, self.ID, dendrite_type)
             self.build_directory(path)
 
             for row in range(self.weights[dendrite_type].shape[0]):
@@ -76,13 +77,14 @@ class Layer:
                     plt.colorbar()
                     plt.savefig(path + '%03d_%d.png' % (row, col))
 
-        vis('basal'); vis('intra'); vis('apical')
+        vis('basal'); vis('intra')
+        if self.weights['apical'] is not None: vis('apical')
 
     def _build_weights(self, output_shape, input_shape):
         # no weights for connections; only used for top layer
         if input_shape is None: return None
 
-        return torch.randn(output_shape+input_shape, dtype=torch.float64)
+        return 0.6 * torch.randn(output_shape+input_shape, dtype=torch.float64) + 0.5
 
     def _build_layer_connections(self, output_shape, input_shape):
         # no weights for connections; only used for top layer
