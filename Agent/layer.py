@@ -191,17 +191,17 @@ class Layer:
     def vis_activity(self):
         fig = plt.figure(figsize=(10,10))
         if self.layer_above is not None:
-            plt.subplot(3,3,1); plt.title('Input'); plt.imshow(self.layer_above)
-            plt.subplot(3,3,2); plt.title('Apical Output'); plt.imshow(self.top_down)
-        plt.subplot(3,3,3); plt.title('Active Neurons'); plt.imshow(self.active_neurons)
+            plt.subplot(3,3,1); plt.title('Input'); plt.imshow(self.layer_above); plt.colorbar()
+            plt.subplot(3,3,2); plt.title('Apical Output'); plt.imshow(self.top_down); plt.colorbar()
+        plt.subplot(3,3,3); plt.title('Active Neurons'); plt.imshow(self.active_neurons); plt.colorbar()
 
-        plt.subplot(3,3,4); plt.title('Input'); plt.imshow(self.active_neurons)
-        plt.subplot(3,3,5); plt.title('Intra Output'); plt.imshow(self.intra_layer)
-        plt.subplot(3,3,6); plt.title('Previously Activie Neurons'); plt.imshow(self.previous_active_neurons)
+        plt.subplot(3,3,4); plt.title('Input'); plt.imshow(self.active_neurons); plt.colorbar()
+        plt.subplot(3,3,5); plt.title('Intra Output'); plt.imshow(self.intra_layer); plt.colorbar()
+        plt.subplot(3,3,6); plt.title('Previously Activie Neurons'); plt.imshow(self.previous_active_neurons); plt.colorbar()
 
-        plt.subplot(3,3,7); plt.title('Input'); plt.imshow(self.x)
-        plt.subplot(3,3,8); plt.title('Basal Output'); plt.imshow(self.bottom_up)
-        plt.subplot(3,3,9); plt.title('Previous State'); plt.imshow(self.previous_state)
+        plt.subplot(3,3,7); plt.title('Input'); plt.imshow(self.x); plt.colorbar()
+        plt.subplot(3,3,8); plt.title('Basal Output'); plt.imshow(self.bottom_up); plt.colorbar()
+        plt.subplot(3,3,9); plt.title('Previous State'); plt.imshow(self.previous_state); plt.colorbar()
 
-        plt.colorbar(); fig.suptitle('Layer %d' % self.ID)
+        fig.suptitle('Layer %d' % self.ID)
         plt.show()
