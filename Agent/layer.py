@@ -7,7 +7,7 @@ from torch import nn
 
 class Layer:
     def __init__(self, args, ID, input_shape, layer_shape, top_down_shape,
-        activity_decay=0.9, threshold=1., learning_rate=1e-3, reset_potential=0):
+        activity_decay=0.9, threshold=.2, learning_rate=1e-3, reset_potential=0):
         self.weights = {
             'basal':self._build_weights(layer_shape, input_shape),            # bottom up
             'intra':self._build_weights(layer_shape, layer_shape),              # intra layer
@@ -84,16 +84,18 @@ class Layer:
         # no weights for connections; only used for top layer
         if input_shape is None: return None
 
-        return 0.6 * torch.randn(output_shape+input_shape, dtype=torch.float64) + 0.5
+        return 0.1 * torch.randn(output_shape+input_shape, dtype=torch.float64)
 
     def _build_layer_connections(self, output_shape, input_shape):
         # no weights for connections; only used for top layer
         if input_shape is None: return None
 
         connections = np.zeros(output_shape + input_shape)
+        scale_row = input_shape[0] / float(output_shape[0])
+        scale_col = input_shape[1] / float(output_shape[1])
         for row in range(output_shape[0]):
             for col in range(output_shape[1]):
-                connections[row][col] = self._generate_mask(row, col, input_shape[0])
+                connections[row][col] = self._generate_mask(int(scale_row*row), int(scale_col*col), input_shape[0])
         return torch.from_numpy(connections)
 
     def _generate_mask(self, row, col, n, r=3):
