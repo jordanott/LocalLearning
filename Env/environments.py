@@ -1,4 +1,5 @@
 import gym
+import torch
 import numpy as np
 from keras.datasets import mnist
 
@@ -9,6 +10,59 @@ class Environment(object):
         pass
 
 class MNIST(Environment):
+    def __init__(self, args):
+        super(MNIST, self).__init__(args)
+        self.args['input_shape'] = (28,28)
+        (self.x_train, self.y_train), (self.x_test, self.y_test) = mnist.load_data()
+
+        self.train_idx = 0
+        self.test_idx = 0
+
+        self.hash = {}
+        for k in np.unique(self.y_train):
+            self.hash[k] = torch.zeros(100, dtype=torch.uint8)
+
+    def step(self, action, kwargs):
+        RECORD = kwargs.get('RECORD', False)
+        # yield next image; not interactible
+        if RECORD:
+            label = self.y_train[self.train_idx]
+            self.hash[label] = action | self.hash[label]
+
+        self.train_idx += 1
+        return self._get_train_state()
+
+    def eval(self, action, label_similarity={}):
+        label = self.y_test[self.test_idx]
+        # iterate through the categories to find the most similar one
+        for k in self.hash:
+            label_similarity[k] = torch.sum(action & self.hash[label])
+
+        # the prediction is the category with most overlap
+        prediction = max(label_similarity, key=label_similarity.get)
+
+        # evaluate prediction
+        self.correct_predictions += prediction == label
+
+        self.test_idx += 1
+        return self._get_test_state()
+
+    def reset(self, kwargs):
+        TRAIN = kwargs.get('TRAIN', False)
+        if TRAIN:
+            self.train_idx = 0
+            return self._get_train_state()
+        else:
+            self.test_idx = 0; self.correct_predictions = 0
+            return self._get_test_state()
+
+    def _get_train_state(self):
+        return (self.x_train[self.train_idx] > 1).astype(np.float16)
+
+    def _get_test_state(self):
+        return (self.x_test[self.test_idx] > 1).astype(np.float16)
+
+class SMNIST(Environment):
     def __init__(self, args):
         super(MNIST, self).__init__(args)
         self.args['input_shape'] = (28,28)

@@ -1,7 +1,8 @@
-from environments import MNIST, LMNIST, GYM
+from environments import MNIST, SMNIST, LMNIST, GYM
 
 env_opts = {
     'MNIST': MNIST,
+    'SMNIST': SMNIST,
     'LMNIST': LMNIST,
     'GYM': GYM
 }
@@ -12,8 +13,11 @@ class EnvManager:
         # create environment
         self.env = env_opts[args['env']](args)
 
-    def reset(self):
-        return self.env.reset()
+    def reset(self, **kwargs):
+        return self.env.reset(kwargs)
 
-    def step(self, action):
-        return self.env.step(action)
+    def step(self, action, **kwargs):
+        return self.env.step(action, kwargs)
+
+    def eval(self, action):
+        return self.env.eval(action)
