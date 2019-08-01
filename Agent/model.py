@@ -41,7 +41,7 @@ class Network(object):
             top_down = self.layers[i+1].active_neurons if i+1 != len(self.layers) else None
 
             x = layer.layer_compute(x, top_down)
-        return x
+        return x.view(-1)
 
     def vis_layers(self):
         for layer in self.layers:

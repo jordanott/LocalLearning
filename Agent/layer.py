@@ -7,7 +7,7 @@ from torch import nn
 
 class Layer:
     def __init__(self, args, ID, input_shape, layer_shape, top_down_shape,
-        activity_decay=0.9, threshold=.2, learning_rate=1e-3, reset_potential=0):
+        activity_decay=0.9, threshold=.2, learning_rate=1e-3, reset_potential=0, sparsity=0.15):
         self.weights = {
             'basal':self._build_weights(layer_shape, input_shape),            # bottom up
             'intra':self._build_weights(layer_shape, layer_shape),              # intra layer
@@ -20,6 +20,7 @@ class Layer:
         }
 
         self.ID = ID
+        self.sparsity = sparsity
         self.threshold = threshold
         self.layer_shape = layer_shape
         self.learning_rate = learning_rate
@@ -114,7 +115,9 @@ class Layer:
         return activities
 
     def _update_state(self, x):
-        self.state = self.activity_decay*self.state + x
+        self.state = torch.clamp(self.activity_decay*self.state + x, 0, 1)
+        # TODO: clamp state values
+        # prevent from becoming too negative
 
     def _fire(self):
         # extend dimensions
@@ -123,8 +126,20 @@ class Layer:
         max_values, indices = self.pool(state)
         # print max_values, indices
         max_values = self.unpool(max_values, indices)
+        
+        flattened_state = state.view(-1)
+        top_k = torch.zeros(flattened_state.shape, dtype=torch.uint8)
+
+        # get top k active neurons
+        k = int(flattened_state.shape[0]*self.sparsity)
+        _,indexes = torch.topk(flattened_state, k)
+
+        # set the top k indexes to fire
+        top_k[indexes] = 1
+        top_k = top_k.reshape(state.shape)
+
         # binary coded input for next layer
-        active_neurons = ((max_values == state) & ( max_values > self.threshold)).squeeze()
+        active_neurons = ((max_values == state) & ( max_values > self.threshold) & top_k).squeeze()
 
         # reset neurons after spike
         self.state[active_neurons] =  self.reset_potential
