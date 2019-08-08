@@ -1,6 +1,7 @@
 import gym
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from keras.datasets import mnist
 
 class Environment(object):
@@ -20,14 +21,17 @@ class MNIST(Environment):
 
         self.hash = {}
         for k in np.unique(self.y_train):
-            self.hash[k] = torch.zeros(100, dtype=torch.uint8)
+            self.hash[k] = None # torch.zeros(100, dtype=torch.uint8)
 
     def step(self, action, kwargs):
         RECORD = kwargs.get('RECORD', False)
         # yield next image; not interactible
         if RECORD:
             label = self.y_train[self.train_idx]
-            self.hash[label] = action | self.hash[label]
+            if self.args['record'] == 'AND':
+                self.hash[label] = action & self.hash[label] if self.hash[label] is not None else action
+            elif self.args['record'] == 'OR':
+                self.hash[label] = action | self.hash[label] if self.hash[label] is not None else action
 
         self.train_idx += 1
         return self._get_train_state()
@@ -36,7 +40,15 @@ class MNIST(Environment):
         label = self.y_test[self.test_idx]
         # iterate through the categories to find the most similar one
         for k in self.hash:
-            label_similarity[k] = torch.sum(action & self.hash[label])
+            label_similarity[k] = torch.sum(action & self.hash[k])
+
+        #     plt.subplot(3,5,k+1)
+        #     plt.imshow(self.hash[k].reshape(self.args['neurons'],self.args['neurons']))
+        #     plt.title('%d sim: %d' % (k, label_similarity[k]))
+        #
+        # plt.subplot(3,5,13)
+        # plt.imshow(action.reshape(self.args['neurons'],self.args['neurons']))
+        # plt.show()
 
         # the prediction is the category with most overlap
         prediction = max(label_similarity, key=label_similarity.get)

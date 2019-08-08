@@ -7,7 +7,9 @@ from torch import nn
 
 class Layer:
     def __init__(self, args, ID, input_shape, layer_shape, top_down_shape,
-        activity_decay=0.9, threshold=.2, learning_rate=1e-3, reset_potential=0, sparsity=0.15):
+        activity_decay=0.9, threshold=.2, learning_rate=1e-3, reset_potential=0,
+        sparsity=0.2, intra_on=False, apical_on=False):
+
         self.weights = {
             'basal':self._build_weights(layer_shape, input_shape),            # bottom up
             'intra':self._build_weights(layer_shape, layer_shape),              # intra layer
@@ -20,16 +22,27 @@ class Layer:
         }
 
         self.ID = ID
-        self.sparsity = sparsity
-        self.threshold = threshold
+        # self.sparsity = sparsity
+        # self.INTRA_ON = intra_on
+        # self.APICAL_ON = apical_on
+        # self.threshold = threshold
         self.layer_shape = layer_shape
-        self.learning_rate = learning_rate
+        # self.learning_rate = learning_rate
         self.unpool = nn.MaxUnpool2d((2,2))
-        self.activity_decay = activity_decay
-        self.reset_potential = reset_potential
+        # self.activity_decay = activity_decay
+        # self.reset_potential = reset_potential
         self.pool = nn.MaxPool2d((2,2),return_indices=True)
         self.state = torch.zeros(layer_shape, dtype=torch.float64)
         self.active_neurons = torch.zeros(layer_shape, dtype=torch.float64)
+
+        # for SHERPA
+        self.INTRA_ON = args['INTRA_ON_%d' % ID]
+        self.APICAL_ON = args['APICAL_ON_%d' % ID]
+        self.sparsity = args['sparsity_%d' % ID]
+        self.threshold = args['threshold_%d' % ID]
+        self.learning_rate = args['learning_rate_%d' % ID]
+        self.activity_decay = args['activity_decay_%d' % ID]
+        self.reset_potential = args['reset_potential_%d' % ID]
 
         self.layer_info = {
             'norms':{
@@ -45,6 +58,10 @@ class Layer:
         }
         if args['vis_weights']:  self.vis_weights()
 
+        path = 'Results/Weights/{}/'.format(self.ID)
+        self.build_directory(path)
+        self.count = 0
+
     def build_directory(self, path, current_path=''):
         print path
         # iterate through folders in specifide path
@@ -54,32 +71,30 @@ class Layer:
             if not os.path.exists(current_path):
                 os.mkdir(current_path)
 
-    def vis_weights(self, train='pretrain'):
-        def vis(dendrite_type):
-            path = 'Results/Weights/{}/{}/{}/'.format(train, self.ID, dendrite_type)
-            self.build_directory(path)
+    def vis_weights(self):
 
-            for row in range(self.weights[dendrite_type].shape[0]):
-                for col in range(self.weights[dendrite_type].shape[1]):
-                    plt.clf()
+        def condense_dendrites(dendrite_type):
+            connections = self.weights[dendrite_type] * self.connections[dendrite_type]
 
-                    plt.subplot(1,3,1)
-                    plt.title(dendrite_type + ' weights')
-                    plt.imshow(self.weights[dendrite_type][row,col])
+            return connections[5,5] # torch.sum(torch.sum(connections, dim=0), 0)
 
-                    plt.subplot(1,3,2)
-                    plt.title(dendrite_type + ' connections')
-                    plt.imshow(self.connections[dendrite_type][row,col])
+        plt.clf()
 
-                    plt.subplot(1,3,3)
-                    plt.title(dendrite_type + ' actual')
-                    plt.imshow(self.weights[dendrite_type][row,col] * self.connections[dendrite_type][row,col])
+        if self.weights['apical'] is not None:
+            plt.subplot(3,1,1); plt.title('Apical')
+            plt.imshow(condense_dendrites('apical'))
 
-                    plt.colorbar()
-                    plt.savefig(path + '%03d_%d.png' % (row, col))
+        plt.subplot(3,1,2); plt.title('Intra')
+        plt.imshow(condense_dendrites('intra'))
 
-        vis('basal'); vis('intra')
-        if self.weights['apical'] is not None: vis('apical')
+        plt.subplot(3,1,3); plt.title('Basal')
+        plt.imshow(condense_dendrites('basal'))
+
+        plt.colorbar();
+        path = 'Results/Weights/{}/'.format(self.ID)
+        plt.savefig(path + '%05d.png' % self.count)
+
+        self.count += 1
 
     def _build_weights(self, output_shape, input_shape):
         # no weights for connections; only used for top layer
@@ -126,7 +141,7 @@ class Layer:
         max_values, indices = self.pool(state)
         # print max_values, indices
         max_values = self.unpool(max_values, indices)
-        
+
         flattened_state = state.view(-1)
         top_k = torch.zeros(flattened_state.shape, dtype=torch.uint8)
 
@@ -146,17 +161,19 @@ class Layer:
 
         return active_neurons
 
-    def layer_compute(self, x, layer_above):
+    def layer_compute(self, x, layer_above, LEARN=True):
         self.x = x; self.layer_above = layer_above
         self.previous_state = self.state.clone(); self.previous_active_neurons = self.active_neurons.clone()
+
         # tow down feedback
-        if layer_above is not None:
+        if layer_above is not None and self.APICAL_ON:
             self.top_down = self._compute(layer_above, 'apical')
             self._update_state(self.top_down)
 
         # intra layer
-        self.intra_layer = self._compute(self.active_neurons, 'intra')
-        self._update_state(self.intra_layer)
+        if self.INTRA_ON:
+            self.intra_layer = self._compute(self.active_neurons, 'intra')
+            self._update_state(self.intra_layer)
 
         # compute bottom up activity
         self.bottom_up = self._compute(x, 'basal')
@@ -164,10 +181,13 @@ class Layer:
 
         self.active_neurons = self._fire()
 
-        if layer_above is not None:
-            self._learn(layer_above, self.active_neurons, 'apical')
-        self._learn(self.active_neurons, self.active_neurons, 'intra')
-        self._learn(x, self.active_neurons, 'basal')
+        if LEARN:
+            if layer_above is not None and self.APICAL_ON:
+                self._learn(layer_above, self.active_neurons, 'apical')
+            if self.INTRA_ON:
+                self._learn(self.active_neurons, self.active_neurons, 'intra')
+
+            self._learn(x, self.active_neurons, 'basal')
 
         return self.active_neurons
 
@@ -203,7 +223,7 @@ class Layer:
         post = torch.einsum('rc,hw->rchw', (output_clone, input))
         post = post * self.connections[dendrite_type]
 
-        self.weights[dendrite_type] += self.learning_rate * (pre + post)
+        self.weights[dendrite_type] += self.learning_rate/2. * (pre + post)
 
     def vis_activity(self):
         fig = plt.figure(figsize=(10,10))
