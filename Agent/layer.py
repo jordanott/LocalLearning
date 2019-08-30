@@ -130,7 +130,7 @@ class Layer:
         return activities
 
     def _update_state(self, x):
-        self.state = torch.clamp(self.activity_decay*self.state + x, 0, 1)
+        self.state = torch.clamp(self.activity_decay*self.state + x, -1, 1)
         # TODO: clamp state values
         # prevent from becoming too negative
 
@@ -139,7 +139,6 @@ class Layer:
         state = self.state[None,None]
         # get the most active neurons
         max_values, indices = self.pool(state)
-        # print max_values, indices
         max_values = self.unpool(max_values, indices)
 
         flattened_state = state.view(-1)
@@ -153,11 +152,19 @@ class Layer:
         top_k[indexes] = 1
         top_k = top_k.reshape(state.shape)
 
+        # torch 1.2 and above requires bool tensor
+        if torch.__version__ >= '1.2.0': top_k = top_k.type(torch.BoolTensor)
+
         # binary coded input for next layer
-        active_neurons = ((max_values == state) & ( max_values > self.threshold) & top_k).squeeze()
+        active_neurons = ((max_values == state) | top_k).squeeze()  # | (max_values > self.threshold)
+
+        # dropout
+        dropout = torch.tensor(np.random.choice([1,0], p=[.8,.2], size=active_neurons.shape)).type(torch.BoolTensor)
+        active_neurons *= dropout
 
         # reset neurons after spike
-        self.state[active_neurons] =  self.reset_potential
+        #self.state[active_neurons] =  self.reset_potential
+        self.state *= 0.0
 
         return active_neurons
 
@@ -193,7 +200,7 @@ class Layer:
 
     def _learn(self, input, output, dendrite_type):
         self._hebbian(input, output, dendrite_type)
-        self._anti_hebbian(input, output, dendrite_type)
+        # self._anti_hebbian(input, output, dendrite_type)
 
         norm = torch.norm(self.weights[dendrite_type].view(1,-1), p=2).sum().data.numpy()
         sparsity = output.nonzero().size(0) / float(output.nelement())

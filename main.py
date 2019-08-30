@@ -30,12 +30,13 @@ trial = client.get_trial()
 ###########################
 
 if args['notsherpa']:
-    args = trial.parameters
+    from config import settings
+    args.update(settings)
 else:
-    pass
+    args = trial.parameters
 
-pp = pprint.PrettyPrinter(indent=4)
-pp.pprint(trial.parameters)
+# pretty print settings
+pp = pprint.PrettyPrinter(indent=4); pp.pprint(args)
 
 env = EnvManager(args)
 monitor = AgentMonitor(args)
@@ -50,11 +51,11 @@ for epoch in range(args['epochs']):
     if args['gif_weights']: net.gif()
 
     state = env.reset(TRAIN=False)
-    for i in range(500):
-        action = net.act(state)
+    for i in range(50):
+        action = net.act(state, LEARN=False)
         state = env.step(action, RECORD=True)
 
-    for i in range(50):
+    for i in range(100):
         action = net.act(state, LEARN=False)
         state = env.eval(action)
 
